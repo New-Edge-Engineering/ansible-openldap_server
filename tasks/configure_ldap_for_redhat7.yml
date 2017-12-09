@@ -1,0 +1,65 @@
+---
+- name: configuration | Generate password `slappasswd -s password`
+  command: "slappasswd -s {{ openldap_server_rootpw }}"
+  register: openldap_server_sha_pass
+
+- name: configuration | Generate LDAP db configuration
+  template:
+    src: db.ldif.j2
+    dest: /tmp/db.ldif
+  register: db_ldif
+
+- name: configuration | Apply LDAP db configuration
+  command: "ldapmodify -Y EXTERNAL  -H ldapi:/// -f {{ db_ldif.dest|default(db_ldif.path) }}"
+  notify:
+    - restart slapd
+
+- name: configuration | Generate LDAP restricted access configuration
+  template:
+    src: monitor.ldif.j2
+    dest: /tmp/monitor.ldif
+  register: monitor_ldif
+
+- name: configuration | Restrict access to LDAP administrator
+  command: "ldapmodify -Y EXTERNAL -H ldapi:/// -f {{ monitor_ldif.dest|default(monitor_ldif.path) }}"
+  notify:
+    - restart slapd
+
+# Create certificate?
+# Correct permissions of certificates?
+# configure LDAP to use certificates
+- name: configuration | test it
+  command: slaptest -u
+
+- name: configuration | copy DB_CONFIG
+  copy:
+    dest: /var/lib/ldap/DB_CONFIG
+    group: ldap
+    remote_src: yes
+    src: /usr/share/openldap-servers/DB_CONFIG.example
+    owner: ldap
+  notify:
+    - restart slapd
+
+- name: configuration | Add schemas
+  command: "ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/{{ item }}.ldif"
+  with_items:
+    - cosine
+    - nis
+    - inetorgperson
+  # changed_when: "upgrade_result.stdout != 'Database is up to date, no upgrade necessary.'"
+  ignore_errors: true
+  notify:
+    - restart slapd
+
+- name: configuration | Generate LDAP db configuration
+  template:
+    src: base.ldif.j2
+    dest: /tmp/base.ldif
+  register: base_ldif
+
+- name: configuration | Apply LDAP db configuration
+  command: "ldapadd -x -w {{ openldap_server_rootpw|mandatory }} -D \"cn={{ openldap_server_admin }},dc={{ openldap_server_domain }},dc={{ openldap_server_tld }}\" -f {{ base_ldif.dest|default(base_ldif.path) }}"
+  ignore_errors: true
+  notify:
+    - restart slapd

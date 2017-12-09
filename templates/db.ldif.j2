@@ -1,0 +1,16 @@
+{{ ansible_managed | comment }}
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcSuffix
+olcSuffix: dc={{ openldap_server_domain }},dc={{ openldap_server_tld }}
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcRootDN
+olcRootDN: cn={{ openldap_server_admin }},dc={{ openldap_server_domain }},dc={{ openldap_server_tld }}
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcRootPW
+olcRootPW: {{ openldap_server_sha_pass.stdout }}

@@ -1,0 +1,19 @@
+{{ ansible_managed | comment }}
+
+dn: dc={{ openldap_server_domain }},dc={{ openldap_server_tld }}
+dc: {{ openldap_server_domain }}
+objectClass: top
+objectClass: domain
+
+dn: cn={{ openldap_server_admin }} ,dc={{ openldap_server_domain }},dc={{ openldap_server_tld }}
+objectClass: organizationalRole
+cn: {{ openldap_server_admin }}
+description: LDAP Manager
+
+dn: ou=people,dc={{ openldap_server_domain }},dc={{ openldap_server_tld }}
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc={{ openldap_server_domain }},dc={{ openldap_server_tld }}
+objectClass: organizationalUnit
+ou: group

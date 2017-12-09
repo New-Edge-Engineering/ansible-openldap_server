@@ -1,0 +1,13 @@
+---
+- name: install | add the OS specific varibles
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: install | openldap and required Packages for RedHat
+  yum: name={{ item }} state=installed
+  with_items: "{{ openldap_server_pkgs }}"
+
+- name: install | ensure the ldap server is enabled and active
+  systemd:
+    enabled: yes
+    name: slapd
+    state: started

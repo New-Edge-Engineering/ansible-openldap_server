@@ -1,3 +1,9 @@
 ---
-- include: install_ldap.yml
-- include: configure_ldap.yml
+- include_tasks: install_ldap_for_redhat7.yml
+  when: ansible_os_family == 'RedHat' and ansible_distribution | version_compare('7', '>=')
+- include_tasks: install_ldap.yml
+  when: ansible_os_family != 'RedHat' and ansible_distribution | version_compare('6', '<=')
+- include_tasks: configure_ldap.yml
+  when: ansible_os_family == 'Debian' or (ansible_os_family == 'RedHat' and ansible_distribution | version_compare('6', '<='))
+- include_tasks: configure_ldap_for_redhat7.yml
+  when: ansible_os_family == 'RedHat' and ansible_distribution | version_compare('7', '>=')
