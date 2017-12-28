@@ -1,0 +1,9 @@
+{{ ansible_managed | comment }}
+
+dn: olcDatabase={1}monitor,cn=config
+add: olcAccess
+olcAccess: to attrs=userPassword
+  by self write
+  by anonymous auth
+  by dn.base="cn={{ openldap_server_admin }},dc={{ openldap_server_domain }},dc={{ openldap_server_tld }}" write
+  by * none

@@ -1,0 +1,7 @@
+{{ ansible_managed | comment }}
+
+dn: olcDatabase={1}monitor,cn=config
+add: olcAccess
+olcAccess: to attrs=shadowLastChange
+  by self write
+  by * read

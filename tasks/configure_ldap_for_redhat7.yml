@@ -11,6 +11,17 @@
 
 - name: configuration | Apply LDAP db configuration
   command: "ldapmodify -Y EXTERNAL  -H ldapi:/// -f {{ db_ldif.dest|default(db_ldif.path) }}"
+  when: db_ldif|changed
+  notify:
+    - restart slapd
+
+- name: configuration | Add schemas
+  command: "ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/{{ item }}.ldif"
+  with_items:
+    - cosine
+    - nis
+    - inetorgperson
+  ignore_errors: true
   notify:
     - restart slapd
 
@@ -20,8 +31,25 @@
     dest: /tmp/monitor.ldif
   register: monitor_ldif
 
-- name: configuration | Restrict access to LDAP administrator
+- name: configuration | Ensure access to LDAP has correct administrator restrictions
   command: "ldapmodify -Y EXTERNAL -H ldapi:/// -f {{ monitor_ldif.dest|default(monitor_ldif.path) }}"
+  when: monitor_ldif|changed
+  notify:
+    - restart slapd
+
+- name: configuration | Generate additional LDAP restricted access configurations
+  template:
+    src: "{{ item }}.ldif.j2"
+    dest: "/tmp/{{ item }}.ldif"
+  register: monitor_add_ldif
+  with_items:
+    - monitor_add1
+    - monitor_add2
+
+- name: configuration | Ensure access to LDAP has correct restrictions
+  command: "ldapmodify -Y EXTERNAL -H ldapi:/// -f {{ item.dest|default(item.path) }}"
+  when: item|changed
+  with_items: "{{ monitor_add_ldif.results }}"
   notify:
     - restart slapd
 
@@ -38,17 +66,6 @@
     remote_src: yes
     src: /usr/share/openldap-servers/DB_CONFIG.example
     owner: ldap
-  notify:
-    - restart slapd
-
-- name: configuration | Add schemas
-  command: "ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/{{ item }}.ldif"
-  with_items:
-    - cosine
-    - nis
-    - inetorgperson
-  # changed_when: "upgrade_result.stdout != 'Database is up to date, no upgrade necessary.'"
-  ignore_errors: true
   notify:
     - restart slapd
 
